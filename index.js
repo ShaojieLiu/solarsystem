@@ -2,8 +2,11 @@ import * as THREE from 'three';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import {CSS2DRenderer, CSS2DObject} from './lib/CSS2DRenderer.js';
 
-import './index.css';
+import initParticle from "./src/initParticle"
+import initLabel from "./src/initLabel"
+import { resizeRendererToDisplaySize } from './src/utils'
 
+import './index.css';
 import './img/earth_bg.jpg';
 import './img/jupiter_bg.jpg';
 import './img/mars_bg.jpg';
@@ -29,7 +32,7 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true
 });
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.shadowMap.enabled = true; //辅助线
+// renderer.shadowMap.enabled = true; //辅助线
 renderer.shadowMapSoft = true; //柔和阴影
 renderer.setClearColor(0xffffff, 0);
 
@@ -44,15 +47,6 @@ scene.add(camera);
 
 // const AxesHelper = new THREE.AxesHelper(500);
 // scene.add(AxesHelper);
-
-const labelRenderer = new CSS2DRenderer();
-labelRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
-labelRenderer.domElement.style.position = 'absolute';
-labelRenderer.domElement.style.top = '0px';
-document.body.appendChild(labelRenderer.domElement);
-
-var orbitcontrols = new OrbitControls(camera, labelRenderer.domElement);
-orbitcontrols.update();
 
 const loader = new THREE.TextureLoader();
 
@@ -148,93 +142,8 @@ function loadPlanet(name, radius, position, speed) {
 
   return planetSystem;
 }
-
-function initParticle() {
-  /*背景星星*/
-  const particles = 20000;  //星星数量
-  /*buffer做星星*/
-  let bufferGeometry = new THREE.BufferGeometry();
-
-  let positions = new Float32Array(particles * 3);
-  let colors = new Float32Array(particles * 3);
-
-  let color = new THREE.Color();
-
-  const gap = 900; // 定义星星的最近出现位置
-
-  for (let i = 0; i < positions.length; i += 3) {
-
-    // positions
-
-    /*-2gap < x < 2gap */
-    let x = (Math.random() * gap * 2) * (Math.random() < .5 ? -1 : 1);
-    let y = (Math.random() * gap * 2) * (Math.random() < .5 ? -1 : 1);
-    let z = (Math.random() * gap * 2) * (Math.random() < .5 ? -1 : 1);
-
-    /*找出x,y,z中绝对值最大的一个数*/
-    let biggest = Math.abs(x) > Math.abs(y) ? Math.abs(x) > Math.abs(z) ? 'x' : 'z' :
-      Math.abs(y) > Math.abs(z) ? 'y' : 'z';
-
-    let pos = {x, y, z};
-
-    /*如果最大值比n要小（因为要在一个距离之外才出现星星）则赋值为n（-n）*/
-    if (Math.abs(pos[biggest]) < gap) pos[biggest] = pos[biggest] < 0 ? -gap : gap;
-
-    x = pos['x'];
-    y = pos['y'];
-    z = pos['z'];
-
-    positions[i] = x;
-    positions[i + 1] = y;
-    positions[i + 2] = z;
-
-    // colors
-
-    /*70%星星有颜色*/
-    let hasColor = Math.random() > 0.3;
-    let vx, vy, vz;
-
-    if (hasColor) {
-      vx = (Math.random() + 1) / 2;
-      vy = (Math.random() + 1) / 2;
-      vz = (Math.random() + 1) / 2;
-    } else {
-      vx = 1;
-      vy = 1;
-      vz = 1;
-    }
-
-    color.setRGB(vx, vy, vz);
-
-    colors[i] = color.r;
-    colors[i + 1] = color.g;
-    colors[i + 2] = color.b;
-  }
-
-  bufferGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  bufferGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  bufferGeometry.computeBoundingSphere();
-
-  /*星星的material*/
-  let material = new THREE.PointsMaterial({size: 6, vertexColors: THREE.VertexColors});
-  const particleSystem = new THREE.Points(bufferGeometry, material);
-
-  return particleSystem;
-}
-
-function resizeRendererToDisplaySize(renderer) {
-  const canvas = renderer.domElement;
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
-  const needResize = canvas.width !== width || canvas.height !== height;
-  if (needResize) {
-    renderer.setSize(width, height, false);
-  }
-  return needResize;
-}
-
 function render(time) {
-  time *= 0.0005;
+  time *= 0.000001;
 
   if (resizeRendererToDisplaySize(renderer)) {
     const canvas = renderer.domElement;
@@ -249,7 +158,7 @@ function render(time) {
     planet.rotation.y -= 0.1;
   }
 
-  orbitcontrols.update();
+  // orbitcontrols.update();
 
   renderer.render(scene, camera);
   labelRenderer.render(scene, camera);
@@ -257,4 +166,13 @@ function render(time) {
   requestAnimationFrame(render);
 }
 
-requestAnimationFrame(render);
+var orbitcontrols, labelRenderer
+
+const init = () => {
+  labelRenderer = initLabel(canvas.clientWidth, canvas.clientHeight)
+  orbitcontrols = new OrbitControls(camera, labelRenderer.domElement);
+  orbitcontrols.update();
+  requestAnimationFrame(render);
+}
+
+init()
