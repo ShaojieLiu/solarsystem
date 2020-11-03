@@ -6,7 +6,7 @@ const {
 
 module.exports = {
   mode: 'production',
-  devtool: 'source-map',
+  devtool: '#eval-source-map',
   entry: {
     app: './index.js'
   },
@@ -34,7 +34,14 @@ module.exports = {
     }]
   },
   devServer: {
-    contentBase: './dist'
+    contentBase: './dist',
+    inline: true,
+    hot: true,
+  },
+  watchOptions: {
+    poll: 1000,//监测修改的时间(ms)
+    aggregateTimeout: 500,//防止重复按键，500毫秒内算按一次
+    ignored: /node_modules/,//不监测
   },
   plugins: [
     new CleanWebpackPlugin(),
